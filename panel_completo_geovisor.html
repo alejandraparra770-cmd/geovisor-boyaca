@@ -1,0 +1,310 @@
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { background: #0f1318; color: #e2e8f0; font-family: 'Avenir Next', 'Segoe UI', Arial, sans-serif; font-size: 12px; overflow-x: hidden; }
+
+/* TABS NAV */
+.nav { display: flex; background: #161c24; border-bottom: 1px solid #252d3a; overflow-x: auto; }
+.nav button { flex: 1; min-width: 80px; padding: 8px 6px; font-size: 9.5px; text-transform: uppercase; letter-spacing: .06em; color: #64748b; background: none; border: none; border-bottom: 2px solid transparent; cursor: pointer; white-space: nowrap; transition: all .2s; }
+.nav button.active { color: #38bdf8; border-bottom-color: #38bdf8; }
+
+/* PAGES */
+.page { display: none; padding: 10px; }
+.page.active { display: block; }
+
+/* KPI CARDS */
+.kpi-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-bottom: 10px; }
+.kpi { background: #161c24; border: 1px solid #252d3a; border-radius: 6px; padding: 8px; text-align: center; }
+.kpi .val { font-size: 18px; font-weight: 700; color: #38bdf8; line-height: 1; }
+.kpi .lbl { font-size: 9px; color: #64748b; text-transform: uppercase; letter-spacing: .05em; margin-top: 3px; }
+
+/* SECTION TITLE */
+.sec { font-size: 9.5px; color: #64748b; text-transform: uppercase; letter-spacing: .07em; margin: 10px 0 6px; border-left: 2px solid #38bdf8; padding-left: 6px; }
+
+/* CHART WRAP */
+.chart-box { background: #161c24; border: 1px solid #252d3a; border-radius: 6px; padding: 10px; margin-bottom: 8px; }
+
+/* HOTSPOT GRID */
+.hs-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 8px; }
+.hs-card { background: #161c24; border: 1px solid #252d3a; border-radius: 6px; padding: 8px; }
+.hs-title { font-size: 9px; color: #94a3b8; text-transform: uppercase; letter-spacing: .05em; margin-bottom: 6px; font-weight: 600; }
+.hs-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 3px; }
+.hs-cat { font-size: 10px; display: flex; align-items: center; gap: 4px; }
+.hs-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.hs-num { font-size: 11px; font-weight: 600; color: #e2e8f0; }
+.hs-bar-wrap { height: 3px; background: #252d3a; border-radius: 2px; margin-top: 2px; }
+.hs-bar { height: 100%; border-radius: 2px; transition: width .6s ease; }
+
+/* LOADING */
+.loading { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 24px; color: #64748b; font-size: 11px; }
+.spin { width: 14px; height: 14px; border: 2px solid #252d3a; border-top-color: #38bdf8; border-radius: 50%; animation: sp .8s linear infinite; }
+@keyframes sp { to { transform: rotate(360deg); } }
+
+canvas { max-height: 240px; }
+</style>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+
+<!-- NAV -->
+<div class="nav">
+  <button class="active" onclick="showPage('resumen',this)">Resumen</button>
+  <button onclick="showPage('municipio',this)">Municipios</button>
+  <button onclick="showPage('delito',this)">Delitos</button>
+  <button onclick="showPage('mes',this)">Mes</button>
+  <button onclick="showPage('hotspot',this)">Hotspots</button>
+</div>
+
+<!-- RESUMEN -->
+<div id="page-resumen" class="page active">
+  <div id="loading-resumen" class="loading"><div class="spin"></div>Cargando...</div>
+  <div id="content-resumen" style="display:none">
+    <div class="kpi-row" id="kpi-row"></div>
+    <div class="sec">Top 5 municipios</div>
+    <div class="chart-box"><canvas id="chart-top5"></canvas></div>
+    <div class="sec">Distribución por delito</div>
+    <div class="chart-box"><canvas id="chart-del-res"></canvas></div>
+  </div>
+</div>
+
+<!-- MUNICIPIOS -->
+<div id="page-municipio" class="page">
+  <div id="loading-mun" class="loading"><div class="spin"></div>Cargando...</div>
+  <div id="content-mun" style="display:none">
+    <div class="sec">Top 20 municipios por total de delitos</div>
+    <div class="chart-box"><canvas id="chart-mun" height="340"></canvas></div>
+  </div>
+</div>
+
+<!-- DELITOS -->
+<div id="page-delito" class="page">
+  <div id="loading-del" class="loading"><div class="spin"></div>Cargando...</div>
+  <div id="content-del" style="display:none">
+    <div class="sec">Recuento por tipo de delito</div>
+    <div class="chart-box"><canvas id="chart-del"></canvas></div>
+  </div>
+</div>
+
+<!-- MES -->
+<div id="page-mes" class="page">
+  <div id="loading-mes" class="loading"><div class="spin"></div>Cargando...</div>
+  <div id="content-mes" style="display:none">
+    <div class="sec">Tendencia mensual 2023–2025</div>
+    <div class="chart-box"><canvas id="chart-mes"></canvas></div>
+  </div>
+</div>
+
+<!-- HOTSPOTS -->
+<div id="page-hotspot" class="page">
+  <div id="loading-hs" class="loading"><div class="spin"></div>Cargando...</div>
+  <div id="content-hs" style="display:none">
+    <div class="sec">Categorías Gi* por tipo de delito</div>
+    <div class="hs-grid" id="hs-grid"></div>
+    <div class="sec">Comparativo por categoría</div>
+    <div class="chart-box"><canvas id="chart-hs"></canvas></div>
+  </div>
+</div>
+
+<script>
+// ── FUENTES ──────────────────────────────────────────────
+const FS       = "https://services8.arcgis.com/XekGUyQhNEYP03AE/ArcGIS/rest/services/DELITOS_BOYACA_2023_2025/FeatureServer/0/query";
+const MUN_FS   = "https://services8.arcgis.com/XekGUyQhNEYP03AE/ArcGIS/rest/services/Delitos_por_Municipio_Boyaca/FeatureServer/2/query";
+const HS = {
+  "Violencia Intrafamiliar": "https://services8.arcgis.com/XekGUyQhNEYP03AE/ArcGIS/rest/services/Hotspot_Temporal_Violencia_Intrafamiliar_Boyaca/FeatureServer/3/query",
+  "Lesiones Personales":     "https://services8.arcgis.com/XekGUyQhNEYP03AE/ArcGIS/rest/services/Hotspot_Temporal_Lesiones_Personales_Boyaca/FeatureServer/0/query",
+  "Hurto":                   "https://services8.arcgis.com/XekGUyQhNEYP03AE/ArcGIS/rest/services/Hotspot_Temporal_Hurto_Boyaca/FeatureServer/0/query",
+  "Homicidio Doloso":        "https://services8.arcgis.com/XekGUyQhNEYP03AE/ArcGIS/rest/services/Hotspot_Temporal_Homicidio_Doloso_Boyaca/FeatureServer/0/query"
+};
+
+const CAT_COLORS = { Persistente: '#8b0000', Emergente: '#f46d43', Esporadico: '#fafcb3', 'No significativo': '#4a5568' };
+const DEL_COLORS = ['#38bdf8','#f59e0b','#10b981','#f43f5e','#8b5cf6','#fb923c','#34d399','#e879f9'];
+const MES_ORDER  = ['ENERO','FEBRERO','MARZO','ABRIL','MAYO','JUNIO','JULIO','AGOSTO','SEPTIEMBRE','OCTUBRE','NOVIEMBRE','DICIEMBRE'];
+
+let charts = {};
+let loaded = {};
+
+// ── UTILS ────────────────────────────────────────────────
+async function q(url, params) {
+  const r = await fetch(`${url}?${new URLSearchParams({...params, f:'json'})}`);
+  const d = await r.json();
+  if (d.error) throw new Error(d.error.message);
+  return d;
+}
+
+function mkBar(id, labels, values, horizontal, colors) {
+  if (charts[id]) charts[id].destroy();
+  const ctx = document.getElementById(id).getContext('2d');
+  const c = colors || labels.map((_,i) => DEL_COLORS[i % DEL_COLORS.length]);
+  charts[id] = new Chart(ctx, {
+    type: 'bar',
+    data: { labels, datasets: [{ data: values, backgroundColor: c.map(x=>x+'99'), borderColor: c, borderWidth: 1, borderRadius: 2 }] },
+    options: {
+      indexAxis: horizontal ? 'y' : 'x',
+      responsive: true,
+      plugins: { legend: { display: false }, tooltip: { backgroundColor:'#161c24', borderColor:'#252d3a', borderWidth:1, titleColor:'#e2e8f0', bodyColor:'#64748b', callbacks:{ label: c=>' '+(horizontal?c.parsed.x:c.parsed.y).toLocaleString()+' delitos' } } },
+      scales: {
+        x: { grid:{color:'#252d3a'}, ticks:{color:'#64748b',font:{size:8}} },
+        y: { grid:{color:'#252d3a'}, ticks:{color:'#e2e8f0',font:{size:8}} }
+      }
+    }
+  });
+}
+
+function mkLine(id, labels, values) {
+  if (charts[id]) charts[id].destroy();
+  const ctx = document.getElementById(id).getContext('2d');
+  charts[id] = new Chart(ctx, {
+    type: 'line',
+    data: { labels, datasets: [{ data: values, borderColor:'#38bdf8', backgroundColor:'#38bdf820', borderWidth:2, pointBackgroundColor:'#38bdf8', pointRadius:3, fill:true, tension:0.3 }] },
+    options: {
+      responsive: true,
+      plugins: { legend:{display:false}, tooltip:{backgroundColor:'#161c24',borderColor:'#252d3a',borderWidth:1,titleColor:'#e2e8f0',bodyColor:'#64748b'} },
+      scales: {
+        x: { grid:{color:'#252d3a'}, ticks:{color:'#64748b',font:{size:8}} },
+        y: { grid:{color:'#252d3a'}, ticks:{color:'#64748b',font:{size:8}} }
+      }
+    }
+  });
+}
+
+function show(id) { document.getElementById(id).style.display = 'block'; }
+function hide(id) { document.getElementById(id).style.display = 'none'; }
+
+// ── LOADERS ──────────────────────────────────────────────
+async function loadResumen() {
+  if (loaded.resumen) return;
+  try {
+    const [totRes, munRes, delRes] = await Promise.all([
+      q(FS, { where:'1=1', returnCountOnly:true }),
+      q(MUN_FS, { where:'1=1', outFields:'MpNombre,Point_Count', orderByFields:'Point_Count DESC', resultRecordCount:5 }),
+      q(FS, { where:'1=1', groupByFieldsForStatistics:'DELITO', outStatistics: JSON.stringify([{statisticType:'count',onStatisticField:'OBJECTID',outStatisticFieldName:'T'}]), orderByFields:'T DESC' })
+    ]);
+
+    const total = totRes.count || 0;
+    const topMun = munRes.features[0];
+    const topDel = delRes.features[0];
+
+    document.getElementById('kpi-row').innerHTML = `
+      <div class="kpi"><div class="val">${total.toLocaleString()}</div><div class="lbl">Total delitos</div></div>
+      <div class="kpi"><div class="val" style="font-size:13px;color:#f59e0b">${topMun.attributes.MpNombre}</div><div class="lbl">Municipio más afectado</div></div>
+      <div class="kpi"><div class="val" style="font-size:11px;color:#f43f5e">${topDel.attributes.DELITO}</div><div class="lbl">Delito más frecuente</div></div>
+    `;
+
+    const munLabels = munRes.features.map(f => f.attributes.MpNombre);
+    const munValues = munRes.features.map(f => f.attributes.Point_Count);
+    mkBar('chart-top5', munLabels, munValues, true);
+
+    const delLabels = delRes.features.map(f => f.attributes.DELITO);
+    const delValues = delRes.features.map(f => f.attributes.T);
+    mkBar('chart-del-res', delLabels, delValues, false);
+
+    hide('loading-resumen'); show('content-resumen');
+    loaded.resumen = true;
+  } catch(e) { document.getElementById('loading-resumen').textContent = '⚠ ' + e.message; }
+}
+
+async function loadMun() {
+  if (loaded.mun) return;
+  try {
+    const res = await q(MUN_FS, { where:'1=1', outFields:'MpNombre,Point_Count', orderByFields:'Point_Count DESC', resultRecordCount:20 });
+    mkBar('chart-mun', res.features.map(f=>f.attributes.MpNombre), res.features.map(f=>f.attributes.Point_Count), true);
+    hide('loading-mun'); show('content-mun');
+    loaded.mun = true;
+  } catch(e) { document.getElementById('loading-mun').textContent = '⚠ ' + e.message; }
+}
+
+async function loadDel() {
+  if (loaded.del) return;
+  try {
+    const res = await q(FS, { where:'1=1', groupByFieldsForStatistics:'DELITO', outStatistics: JSON.stringify([{statisticType:'count',onStatisticField:'OBJECTID',outStatisticFieldName:'T'}]), orderByFields:'T DESC' });
+    mkBar('chart-del', res.features.map(f=>f.attributes.DELITO), res.features.map(f=>f.attributes.T), false);
+    hide('loading-del'); show('content-del');
+    loaded.del = true;
+  } catch(e) { document.getElementById('loading-del').textContent = '⚠ ' + e.message; }
+}
+
+async function loadMes() {
+  if (loaded.mes) return;
+  try {
+    const res = await q(FS, { where:'1=1', groupByFieldsForStatistics:'MES_HECHO', outStatistics: JSON.stringify([{statisticType:'count',onStatisticField:'OBJECTID',outStatisticFieldName:'T'}]) });
+    const map = {}; res.features.forEach(f => map[f.attributes.MES_HECHO] = f.attributes.T);
+    const labels = MES_ORDER.filter(m => map[m]);
+    mkLine('chart-mes', labels, labels.map(m=>map[m]));
+    hide('loading-mes'); show('content-mes');
+    loaded.mes = true;
+  } catch(e) { document.getElementById('loading-mes').textContent = '⚠ ' + e.message; }
+}
+
+async function loadHotspot() {
+  if (loaded.hs) return;
+  try {
+    const results = await Promise.all(
+      Object.entries(HS).map(async ([name, url]) => {
+        const res = await q(url, { where:'1=1', groupByFieldsForStatistics:'CATEGORIA', outStatistics: JSON.stringify([{statisticType:'count',onStatisticField:'FID',outStatisticFieldName:'T'}]) });
+        const cats = {}; res.features.forEach(f => cats[f.attributes.CATEGORIA] = f.attributes.T);
+        return { name, cats };
+      })
+    );
+
+    // Cards
+    const grid = document.getElementById('hs-grid');
+    results.forEach(({ name, cats }) => {
+      const total = Object.values(cats).reduce((a,b)=>a+b,0);
+      const rows = ['Persistente','Emergente','Esporadico','No significativo'].map(cat => {
+        const n = cats[cat] || 0;
+        const pct = total ? Math.round(n/total*100) : 0;
+        return `<div class="hs-row">
+          <div class="hs-cat"><div class="hs-dot" style="background:${CAT_COLORS[cat]}"></div><span style="color:#94a3b8">${cat}</span></div>
+          <div class="hs-num">${n}</div>
+        </div>
+        <div class="hs-bar-wrap"><div class="hs-bar" style="width:${pct}%;background:${CAT_COLORS[cat]}"></div></div>`;
+      }).join('');
+      grid.innerHTML += `<div class="hs-card"><div class="hs-title">${name}</div>${rows}</div>`;
+    });
+
+    // Chart comparativo
+    const cats = ['Persistente','Emergente','Esporadico','No significativo'];
+    const datasets = cats.map(cat => ({
+      label: cat,
+      data: results.map(r => r.cats[cat] || 0),
+      backgroundColor: CAT_COLORS[cat] + '99',
+      borderColor: CAT_COLORS[cat],
+      borderWidth: 1,
+      borderRadius: 2
+    }));
+
+    if (charts['chart-hs']) charts['chart-hs'].destroy();
+    const ctx = document.getElementById('chart-hs').getContext('2d');
+    charts['chart-hs'] = new Chart(ctx, {
+      type: 'bar',
+      data: { labels: results.map(r => r.name.replace(' ','\n')), datasets },
+      options: {
+        responsive: true,
+        plugins: {
+          legend: { position:'bottom', labels:{ color:'#94a3b8', font:{size:9}, boxWidth:10 } },
+          tooltip: { backgroundColor:'#161c24', borderColor:'#252d3a', borderWidth:1, titleColor:'#e2e8f0', bodyColor:'#94a3b8' }
+        },
+        scales: {
+          x: { grid:{color:'#252d3a'}, ticks:{color:'#94a3b8',font:{size:8}} },
+          y: { grid:{color:'#252d3a'}, ticks:{color:'#64748b',font:{size:8}} }
+        }
+      }
+    });
+
+    hide('loading-hs'); show('content-hs');
+    loaded.hs = true;
+  } catch(e) { document.getElementById('loading-hs').textContent = '⚠ ' + e.message; }
+}
+
+// ── NAVEGACIÓN ───────────────────────────────────────────
+const loaders = { resumen: loadResumen, municipio: loadMun, delito: loadDel, mes: loadMes, hotspot: loadHotspot };
+
+function showPage(id, btn) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav button').forEach(b => b.classList.remove('active'));
+  document.getElementById('page-' + id).classList.add('active');
+  btn.classList.add('active');
+  loaders[id]();
+}
+
+// Cargar resumen al inicio
+loadResumen();
+</script>

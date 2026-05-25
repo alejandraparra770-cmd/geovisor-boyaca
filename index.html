@@ -3,535 +3,330 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Geovisor de Delitos — Boyacá 2023-2025</title>
-
+<title>Geovisor Delitos Boyacá 2023-2025</title>
 <link rel="stylesheet" href="https://js.arcgis.com/4.29/esri/themes/dark/main.css">
 <script src="https://js.arcgis.com/4.29/"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
-
 <style>
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  html, body { height: 100%; width: 100%; overflow: hidden; font-family: 'Avenir Next', Arial, sans-serif; background: #0f1318; color: #e2e8f0; }
-
-  /* HEADER */
-  #header {
-    position: fixed; top: 0; left: 0; right: 0; height: 46px;
-    background: #0c1a2e;
-    border-bottom: 1px solid #1e3a5f;
-    display: flex; align-items: center; gap: 12px;
-    padding: 0 16px; z-index: 100;
-  }
-  #header h1 { font-size: 13px; font-weight: 600; color: #38bdf8; letter-spacing: .03em; }
-  .hbadge { font-size: 10px; color: #64748b; background: #161c24; border: 1px solid #252d3a; border-radius: 4px; padding: 2px 8px; }
-  .hright { margin-left: auto; display: flex; align-items: center; gap: 8px; }
-  .dot-live { width: 7px; height: 7px; border-radius: 50%; background: #22c55e; box-shadow: 0 0 6px #22c55e; animation: blink 2s infinite; }
-  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.3} }
-
-  /* LAYOUT */
-  #app { position: fixed; top: 46px; left: 0; right: 0; bottom: 0; display: flex; }
-
-  /* SIDEBAR */
-  #sidebar {
-    width: 300px; flex-shrink: 0;
-    background: #0f1318;
-    border-right: 1px solid #1e293b;
-    display: flex; flex-direction: column;
-    overflow: hidden;
-  }
-
-  /* FILTROS */
-  #filtros {
-    padding: 10px;
-    border-bottom: 1px solid #1e293b;
-    background: #111827;
-  }
-  .f-title { font-size: 9px; color: #475569; text-transform: uppercase; letter-spacing: .08em; margin-bottom: 8px; }
-  .f-row { display: flex; flex-direction: column; gap: 4px; margin-bottom: 8px; }
-  .f-row label { font-size: 10px; color: #64748b; }
-  select {
-    background: #0f1318; border: 1px solid #1e293b; color: #e2e8f0;
-    font-size: 11px; padding: 5px 8px; border-radius: 4px; width: 100%; outline: none;
-    transition: border-color .2s;
-  }
-  select:focus { border-color: #38bdf8; }
-  .btn-row { display: flex; gap: 6px; }
-  .btn { flex:1; padding: 6px; font-size: 10px; border-radius: 4px; border: none; cursor: pointer; transition: all .2s; text-transform: uppercase; letter-spacing: .05em; }
-  .btn-primary { background: #0369a1; color: #e0f2fe; }
-  .btn-primary:hover { background: #0284c7; }
-  .btn-reset { background: #1e293b; color: #64748b; }
-  .btn-reset:hover { background: #1e293b; color: #f43f5e; }
-
-  /* CAPAS */
-  #capas {
-    padding: 10px;
-    border-bottom: 1px solid #1e293b;
-    background: #111827;
-  }
-  .capa-item { display: flex; align-items: center; gap: 8px; padding: 4px 0; cursor: pointer; }
-  .capa-item input { accent-color: #38bdf8; cursor: pointer; }
-  .capa-label { font-size: 11px; color: #94a3b8; }
-  .capa-dot { width: 10px; height: 10px; border-radius: 2px; flex-shrink: 0; }
-
-  /* ESTADÍSTICAS */
-  #stats { flex: 1; overflow-y: auto; padding: 10px; }
-  .kpi-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 10px; }
-  .kpi { background: #111827; border: 1px solid #1e293b; border-radius: 6px; padding: 8px; text-align: center; }
-  .kpi .val { font-size: 20px; font-weight: 700; color: #38bdf8; line-height: 1.1; }
-  .kpi .lbl { font-size: 9px; color: #475569; text-transform: uppercase; letter-spacing: .05em; margin-top: 2px; }
-
-  .sec { font-size: 9px; color: #475569; text-transform: uppercase; letter-spacing: .08em; margin: 10px 0 6px; padding-left: 6px; border-left: 2px solid #38bdf8; }
-  .chart-wrap { background: #111827; border: 1px solid #1e293b; border-radius: 6px; padding: 8px; margin-bottom: 8px; }
-
-  /* TABS charts */
-  .ctabs { display: flex; gap: 0; margin-bottom: 8px; }
-  .ctab { flex:1; font-size: 9px; text-transform: uppercase; letter-spacing: .05em; color: #475569; background: none; border: none; border-bottom: 2px solid transparent; padding: 4px; cursor: pointer; transition: all .2s; }
-  .ctab.active { color: #38bdf8; border-bottom-color: #38bdf8; }
-
-  /* HOTSPOT LEGEND */
-  .hs-legend { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 6px; }
-  .hs-item { display: flex; align-items: center; gap: 4px; font-size: 10px; color: #94a3b8; }
-  .hs-sq { width: 10px; height: 10px; border-radius: 2px; }
-
-  /* MAP */
-  #map-container { flex: 1; position: relative; }
-  #viewDiv { width: 100%; height: 100%; }
-
-  /* POPUP CUSTOM */
-  .pop-title { font-size: 13px; font-weight: 600; color: #38bdf8; margin-bottom: 6px; }
-  .pop-row { display: flex; justify-content: space-between; font-size: 11px; padding: 2px 0; border-bottom: 1px solid #1e293b; }
-  .pop-row span:last-child { color: #f59e0b; font-weight: 600; }
-
-  /* LOADING */
-  .spin-wrap { display: flex; align-items: center; gap: 6px; padding: 16px; color: #475569; font-size: 11px; justify-content: center; }
-  .spin { width: 14px; height: 14px; border: 2px solid #1e293b; border-top-color: #38bdf8; border-radius: 50%; animation: sp .8s linear infinite; }
-  @keyframes sp { to { transform: rotate(360deg); } }
-
-  /* SCROLLBAR */
-  #stats::-webkit-scrollbar { width: 4px; }
-  #stats::-webkit-scrollbar-track { background: #0f1318; }
-  #stats::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 2px; }
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;width:100%;overflow:hidden;font-family:'Avenir Next',Arial,sans-serif;background:#0f1318;color:#e2e8f0}
+#header{position:fixed;top:0;left:0;right:0;height:46px;background:#0c1a2e;border-bottom:1px solid #1e3a5f;display:flex;align-items:center;gap:12px;padding:0 16px;z-index:200}
+#header h1{font-size:13px;font-weight:600;color:#38bdf8}
+.hbadge{font-size:10px;color:#64748b;background:#161c24;border:1px solid #252d3a;border-radius:4px;padding:2px 8px}
+.hright{margin-left:auto}
+.dot-live{width:7px;height:7px;border-radius:50%;background:#22c55e;box-shadow:0 0 6px #22c55e;animation:blink 2s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+#app{position:fixed;top:46px;left:0;right:0;bottom:0;display:flex}
+#sidebar{width:290px;flex-shrink:0;background:#0f1318;border-right:1px solid #1e293b;display:flex;flex-direction:column;overflow:hidden;z-index:100}
+.s-section{padding:10px;border-bottom:1px solid #1e293b;background:#111827}
+.s-title{font-size:9px;color:#475569;text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px}
+.f-row{display:flex;flex-direction:column;gap:3px;margin-bottom:7px}
+.f-row label{font-size:10px;color:#64748b}
+select{background:#0f1318;border:1px solid #1e293b;color:#e2e8f0;font-size:11px;padding:5px 8px;border-radius:4px;width:100%;outline:none;cursor:pointer}
+select:focus{border-color:#38bdf8}
+.btn-row{display:flex;gap:6px}
+.btn{flex:1;padding:6px;font-size:10px;border-radius:4px;border:none;cursor:pointer;text-transform:uppercase;letter-spacing:.05em;font-weight:600}
+.btn-p{background:#0369a1;color:#e0f2fe}
+.btn-p:hover{background:#0284c7}
+.btn-r{background:#1e293b;color:#94a3b8}
+.btn-r:hover{color:#f43f5e}
+.capa-item{display:flex;align-items:center;gap:7px;padding:3px 0;cursor:pointer}
+.capa-item input{accent-color:#38bdf8;cursor:pointer}
+.capa-label{font-size:11px;color:#94a3b8}
+.capa-dot{width:10px;height:10px;border-radius:2px;flex-shrink:0}
+#stats-panel{flex:1;overflow-y:auto;padding:10px}
+.kpi-grid{display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-bottom:10px}
+.kpi{background:#111827;border:1px solid #1e293b;border-radius:6px;padding:7px;text-align:center}
+.kpi .val{font-size:18px;font-weight:700;color:#38bdf8;line-height:1.1}
+.kpi .lbl{font-size:9px;color:#475569;text-transform:uppercase;letter-spacing:.05em;margin-top:2px}
+.sec{font-size:9px;color:#475569;text-transform:uppercase;letter-spacing:.08em;margin:8px 0 5px;padding-left:6px;border-left:2px solid #38bdf8}
+.ctabs{display:flex;margin-bottom:6px}
+.ctab{flex:1;font-size:9px;text-transform:uppercase;letter-spacing:.04em;color:#475569;background:none;border:none;border-bottom:2px solid transparent;padding:4px 2px;cursor:pointer}
+.ctab.active{color:#38bdf8;border-bottom-color:#38bdf8}
+.chart-box{background:#111827;border:1px solid #1e293b;border-radius:6px;padding:8px;margin-bottom:6px}
+.hs-legend{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:5px}
+.hs-item{display:flex;align-items:center;gap:3px;font-size:9px;color:#94a3b8}
+.hs-sq{width:9px;height:9px;border-radius:2px}
+#map-container{flex:1;position:relative}
+#viewDiv{width:100%;height:100%}
+#stats-panel::-webkit-scrollbar{width:3px}
+#stats-panel::-webkit-scrollbar-thumb{background:#1e293b;border-radius:2px}
+.loading-s{display:flex;align-items:center;gap:6px;padding:20px;color:#475569;font-size:11px;justify-content:center}
+.spin{width:13px;height:13px;border:2px solid #1e293b;border-top-color:#38bdf8;border-radius:50%;animation:sp .8s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
 </style>
 </head>
 <body>
-
-<!-- HEADER -->
 <div id="header">
   <div class="dot-live"></div>
-  <h1>Geovisor de Delitos — Departamento de Boyacá</h1>
+  <h1>Geovisor de Delitos — Boyacá</h1>
   <span class="hbadge">2023–2025</span>
-  <div class="hright">
-    <span class="hbadge" id="total-badge">Cargando...</span>
-  </div>
+  <div class="hright"><span class="hbadge" id="total-hdr">Cargando...</span></div>
 </div>
 
 <div id="app">
-  <!-- SIDEBAR -->
   <div id="sidebar">
 
-    <!-- FILTROS -->
-    <div id="filtros">
-      <div class="f-title">Filtros</div>
+    <div class="s-section">
+      <div class="s-title">Filtros</div>
       <div class="f-row">
-        <label>Tipo de delito</label>
-        <select id="sel-delito">
+        <label>Delito</label>
+        <select id="sel-d">
           <option value="">Todos</option>
-          <option>AMENAZAS</option>
-          <option>DELITOS SEXUALES</option>
-          <option>ESTAFA</option>
-          <option>HOMICIDIO CULPOSO</option>
-          <option>HOMICIDIO DOLOSO</option>
-          <option>HURTO</option>
-          <option>LESIONES PERSONALES</option>
-          <option>VIOLENCIA INTRAFAMILIAR</option>
+          <option>AMENAZAS</option><option>DELITOS SEXUALES</option><option>ESTAFA</option>
+          <option>HOMICIDIO CULPOSO</option><option>HOMICIDIO DOLOSO</option>
+          <option>HURTO</option><option>LESIONES PERSONALES</option><option>VIOLENCIA INTRAFAMILIAR</option>
         </select>
       </div>
       <div class="f-row">
         <label>Año</label>
-        <select id="sel-anio">
-          <option value="">Todos</option>
-          <option>2023</option><option>2024</option><option>2025</option>
-        </select>
+        <select id="sel-a"><option value="">Todos</option><option>2023</option><option>2024</option><option>2025</option></select>
       </div>
       <div class="f-row">
         <label>Mes</label>
-        <select id="sel-mes">
+        <select id="sel-m">
           <option value="">Todos</option>
-          <option value="ENERO">Enero</option><option value="FEBRERO">Febrero</option>
-          <option value="MARZO">Marzo</option><option value="ABRIL">Abril</option>
-          <option value="MAYO">Mayo</option><option value="JUNIO">Junio</option>
-          <option value="JULIO">Julio</option><option value="AGOSTO">Agosto</option>
-          <option value="SEPTIEMBRE">Septiembre</option><option value="OCTUBRE">Octubre</option>
-          <option value="NOVIEMBRE">Noviembre</option><option value="DICIEMBRE">Diciembre</option>
+          <option value="ENERO">Enero</option><option value="FEBRERO">Febrero</option><option value="MARZO">Marzo</option>
+          <option value="ABRIL">Abril</option><option value="MAYO">Mayo</option><option value="JUNIO">Junio</option>
+          <option value="JULIO">Julio</option><option value="AGOSTO">Agosto</option><option value="SEPTIEMBRE">Septiembre</option>
+          <option value="OCTUBRE">Octubre</option><option value="NOVIEMBRE">Noviembre</option><option value="DICIEMBRE">Diciembre</option>
         </select>
       </div>
       <div class="btn-row">
-        <button class="btn btn-primary" onclick="applyFilters()">Aplicar</button>
-        <button class="btn btn-reset" onclick="resetFilters()">Limpiar</button>
+        <button class="btn btn-p" onclick="applyF()">Aplicar</button>
+        <button class="btn btn-r" onclick="resetF()">Limpiar</button>
       </div>
     </div>
 
-    <!-- CAPAS -->
-    <div id="capas">
-      <div class="f-title">Capas</div>
-      <div class="capa-item">
-        <input type="checkbox" id="chk-delitos" checked onchange="toggleLayer('delitos', this.checked)">
-        <div class="capa-dot" style="background:#38bdf8"></div>
-        <label class="capa-label" for="chk-delitos">Puntos de delitos</label>
-      </div>
-      <div class="capa-item">
-        <input type="checkbox" id="chk-coropleta" onchange="toggleLayer('coropleta', this.checked)">
-        <div class="capa-dot" style="background:linear-gradient(to right,#ffff00,#ff0000)"></div>
-        <label class="capa-label" for="chk-coropleta">Coropleta municipios</label>
-      </div>
-      <div class="capa-item">
-        <input type="checkbox" id="chk-hs-vi" onchange="toggleLayer('hs-vi', this.checked)">
-        <div class="capa-dot" style="background:#8b0000"></div>
-        <label class="capa-label" for="chk-hs-vi">Hotspot Violencia Intrafamiliar</label>
-      </div>
-      <div class="capa-item">
-        <input type="checkbox" id="chk-hs-lp" onchange="toggleLayer('hs-lp', this.checked)">
-        <div class="capa-dot" style="background:#f46d43"></div>
-        <label class="capa-label" for="chk-hs-lp">Hotspot Lesiones Personales</label>
-      </div>
-      <div class="capa-item">
-        <input type="checkbox" id="chk-hs-hr" onchange="toggleLayer('hs-hr', this.checked)">
-        <div class="capa-dot" style="background:#fdae61"></div>
-        <label class="capa-label" for="chk-hs-hr">Hotspot Hurto</label>
-      </div>
-      <div class="capa-item">
-        <input type="checkbox" id="chk-hs-hd" onchange="toggleLayer('hs-hd', this.checked)">
-        <div class="capa-dot" style="background:#d73027"></div>
-        <label class="capa-label" for="chk-hs-hd">Hotspot Homicidio Doloso</label>
-      </div>
+    <div class="s-section">
+      <div class="s-title">Capas</div>
+      <div class="capa-item"><input type="checkbox" id="c0" checked onchange="tgl('delitos',this.checked)"><div class="capa-dot" style="background:#38bdf8"></div><label class="capa-label" for="c0">Puntos de delitos</label></div>
+      <div class="capa-item"><input type="checkbox" id="c1" onchange="tgl('corop',this.checked)"><div class="capa-dot" style="background:linear-gradient(to right,#ffff00,#f00)"></div><label class="capa-label" for="c1">Coropleta municipios</label></div>
+      <div class="capa-item"><input type="checkbox" id="c2" onchange="tgl('hsvi',this.checked)"><div class="capa-dot" style="background:#8b0000"></div><label class="capa-label" for="c2">Hotspot Violencia Intrafamiliar</label></div>
+      <div class="capa-item"><input type="checkbox" id="c3" onchange="tgl('hslp',this.checked)"><div class="capa-dot" style="background:#f46d43"></div><label class="capa-label" for="c3">Hotspot Lesiones Personales</label></div>
+      <div class="capa-item"><input type="checkbox" id="c4" onchange="tgl('hshr',this.checked)"><div class="capa-dot" style="background:#fdae61"></div><label class="capa-label" for="c4">Hotspot Hurto</label></div>
+      <div class="capa-item"><input type="checkbox" id="c5" onchange="tgl('hshd',this.checked)"><div class="capa-dot" style="background:#d73027"></div><label class="capa-label" for="c5">Hotspot Homicidio Doloso</label></div>
     </div>
 
-    <!-- ESTADÍSTICAS -->
-    <div id="stats">
-      <div class="spin-wrap" id="spin-stats"><div class="spin"></div>Cargando estadísticas...</div>
-      <div id="stats-content" style="display:none">
-
-        <div class="kpi-grid" id="kpi-grid"></div>
-
+    <div id="stats-panel">
+      <div class="loading-s" id="spin-s"><div class="spin"></div>Cargando...</div>
+      <div id="stats-body" style="display:none">
+        <div class="kpi-grid" id="kpis"></div>
         <div class="sec">Gráficas</div>
         <div class="ctabs">
-          <button class="ctab active" onclick="showChart('municipio',this)">Municipio</button>
-          <button class="ctab" onclick="showChart('delito',this)">Delito</button>
-          <button class="ctab" onclick="showChart('mes',this)">Mes</button>
-          <button class="ctab" onclick="showChart('hotspot',this)">Hotspot</button>
+          <button class="ctab active" onclick="sc('mun',this)">Municipio</button>
+          <button class="ctab" onclick="sc('del',this)">Delito</button>
+          <button class="ctab" onclick="sc('mes',this)">Mes</button>
+          <button class="ctab" onclick="sc('hs',this)">Hotspot</button>
         </div>
-
-        <div class="chart-wrap" id="cwrap-municipio">
-          <canvas id="chart-mun" height="200"></canvas>
-        </div>
-        <div class="chart-wrap" id="cwrap-delito" style="display:none">
-          <canvas id="chart-del" height="180"></canvas>
-        </div>
-        <div class="chart-wrap" id="cwrap-mes" style="display:none">
-          <canvas id="chart-mes" height="160"></canvas>
-        </div>
-        <div class="chart-wrap" id="cwrap-hotspot" style="display:none">
+        <div class="chart-box" id="cw-mun"><canvas id="ch-mun" height="200"></canvas></div>
+        <div class="chart-box" id="cw-del" style="display:none"><canvas id="ch-del" height="180"></canvas></div>
+        <div class="chart-box" id="cw-mes" style="display:none"><canvas id="ch-mes" height="160"></canvas></div>
+        <div class="chart-box" id="cw-hs" style="display:none">
           <div class="hs-legend">
             <div class="hs-item"><div class="hs-sq" style="background:#8b0000"></div>Persistente</div>
             <div class="hs-item"><div class="hs-sq" style="background:#f46d43"></div>Emergente</div>
             <div class="hs-item"><div class="hs-sq" style="background:#fafcb3;border:1px solid #555"></div>Esporádico</div>
             <div class="hs-item"><div class="hs-sq" style="background:#334155"></div>No significativo</div>
           </div>
-          <canvas id="chart-hs" height="200"></canvas>
+          <canvas id="ch-hs" height="190"></canvas>
         </div>
-
       </div>
     </div>
   </div>
 
-  <!-- MAPA -->
-  <div id="map-container">
-    <div id="viewDiv"></div>
-  </div>
+  <div id="map-container"><div id="viewDiv"></div></div>
 </div>
 
 <script>
-require([
-  "esri/Map",
-  "esri/views/MapView",
-  "esri/layers/FeatureLayer",
-  "esri/widgets/Legend",
-  "esri/widgets/ScaleBar",
-  "esri/widgets/Home"
-], function(Map, MapView, FeatureLayer, Legend, ScaleBar, Home) {
+const ORG = "https://services8.arcgis.com/XekGUyQhNEYP03AE/ArcGIS/rest/services";
+const URLS = {
+  delitos : ORG+"/DELITOS_BOYACA_2023_2025/FeatureServer/0",
+  corop   : ORG+"/Delitos_por_Municipio_Boyaca/FeatureServer/2",
+  limites : ORG+"/Limites_Municipales_Boyaca/FeatureServer/61",
+  hsvi    : ORG+"/Hotspot_Temporal_Violencia_Intrafamiliar_Boyaca/FeatureServer/3",
+  hslp    : ORG+"/Hotspot_Temporal_Lesiones_Personales_Boyaca/FeatureServer/0",
+  hshr    : ORG+"/Hotspot_Temporal_Hurto_Boyaca/FeatureServer/0",
+  hshd    : ORG+"/Hotspot_Temporal_Homicidio_Doloso_Boyaca/FeatureServer/0"
+};
+const MES = ['ENERO','FEBRERO','MARZO','ABRIL','MAYO','JUNIO','JULIO','AGOSTO','SEPTIEMBRE','OCTUBRE','NOVIEMBRE','DICIEMBRE'];
+const DC  = ['#38bdf8','#f59e0b','#10b981','#f43f5e','#8b5cf6','#fb923c','#34d399','#e879f9'];
+const HSC = {Persistente:'#8b0000',Emergente:'#f46d43',Esporadico:'#fafcb3','No significativo':'#334155'};
 
-  // ── CONSTANTES ───────────────────────────────────────
-  const ORG = "https://services8.arcgis.com/XekGUyQhNEYP03AE/ArcGIS/rest/services";
-  const FS_DELITOS  = `${ORG}/DELITOS_BOYACA_2023_2025/FeatureServer/0`;
-  const FS_COROPLETA= `${ORG}/Delitos_por_Municipio_Boyaca/FeatureServer/2`;
-  const FS_LIMITES  = `${ORG}/Limites_Municipales_Boyaca/FeatureServer/61`;
-  const FS_HS_VI    = `${ORG}/Hotspot_Temporal_Violencia_Intrafamiliar_Boyaca/FeatureServer/3`;
-  const FS_HS_LP    = `${ORG}/Hotspot_Temporal_Lesiones_Personales_Boyaca/FeatureServer/0`;
-  const FS_HS_HR    = `${ORG}/Hotspot_Temporal_Hurto_Boyaca/FeatureServer/0`;
-  const FS_HS_HD    = `${ORG}/Hotspot_Temporal_Homicidio_Doloso_Boyaca/FeatureServer/0`;
+let layers={}, charts={}, where='1=1';
 
-  const CAT_COLORS = { Persistente:'#8b0000', Emergente:'#f46d43', Esporadico:'#fafcb3', 'No significativo':'#334155' };
-  const DEL_COLORS = ['#38bdf8','#f59e0b','#10b981','#f43f5e','#8b5cf6','#fb923c','#34d399','#e879f9'];
-  const MES_ORDER  = ['ENERO','FEBRERO','MARZO','ABRIL','MAYO','JUNIO','JULIO','AGOSTO','SEPTIEMBRE','OCTUBRE','NOVIEMBRE','DICIEMBRE'];
+require(["esri/Map","esri/views/MapView","esri/layers/FeatureLayer","esri/widgets/Home","esri/widgets/ScaleBar"],
+function(Map,MapView,FeatureLayer,Home,ScaleBar){
 
-  let charts = {};
-  let currentWhere = '1=1';
+  const hsR = {type:"unique-value",field:"CATEGORIA",uniqueValueInfos:[
+    {value:"Persistente",      symbol:{type:"simple-fill",color:[139,0,0,160],   outline:{color:[0,0,0,0]}}},
+    {value:"Emergente",        symbol:{type:"simple-fill",color:[244,109,67,160], outline:{color:[0,0,0,0]}}},
+    {value:"Esporadico",       symbol:{type:"simple-fill",color:[250,252,179,200],outline:{color:[0,0,0,0]}}},
+    {value:"No significativo", symbol:{type:"simple-fill",color:[0,0,0,0],       outline:{color:[0,0,0,0]}}}
+  ]};
 
-  // Renderer hotspot
-  const hsRenderer = {
-    type: "unique-value",
-    field: "CATEGORIA",
-    uniqueValueInfos: [
-      { value: "Persistente",      symbol: { type:"simple-fill", color:[139,0,0,160],      outline:{color:[0,0,0,0]} } },
-      { value: "Emergente",        symbol: { type:"simple-fill", color:[244,109,67,160],    outline:{color:[0,0,0,0]} } },
-      { value: "Esporadico",       symbol: { type:"simple-fill", color:[250,252,179,200],   outline:{color:[0,0,0,0]} } },
-      { value: "No significativo", symbol: { type:"simple-fill", color:[0,0,0,0],           outline:{color:[0,0,0,0]} } }
-    ]
-  };
+  const ptR = {type:"unique-value",field:"DELITO",uniqueValueInfos:[
+    {value:"AMENAZAS",               symbol:{type:"simple-marker",color:[0,112,255],   size:5,outline:{color:[0,0,0],width:0.4}}},
+    {value:"DELITOS SEXUALES",       symbol:{type:"simple-marker",color:[197,0,255],   size:5,outline:{color:[0,0,0],width:0.4}}},
+    {value:"ESTAFA",                 symbol:{type:"simple-marker",color:[230,152,0],   size:5,outline:{color:[0,0,0],width:0.4}}},
+    {value:"HOMICIDIO CULPOSO",      symbol:{type:"simple-marker",color:[255,255,0],   size:5,outline:{color:[0,0,0],width:0.4}}},
+    {value:"HOMICIDIO DOLOSO",       symbol:{type:"simple-marker",color:[230,0,0],     size:5,outline:{color:[0,0,0],width:0.4}}},
+    {value:"HURTO",                  symbol:{type:"simple-marker",color:[152,230,0],   size:5,outline:{color:[0,0,0],width:0.4}}},
+    {value:"LESIONES PERSONALES",    symbol:{type:"simple-marker",color:[168,112,0],   size:5,outline:{color:[0,0,0],width:0.4}}},
+    {value:"VIOLENCIA INTRAFAMILIAR",symbol:{type:"simple-marker",color:[255,115,223], size:5,outline:{color:[0,0,0],width:0.4}}}
+  ],defaultSymbol:{type:"simple-marker",color:[130,130,130],size:4}};
 
-  // ── CAPAS ────────────────────────────────────────────
-  const lLimites = new FeatureLayer({ url: FS_LIMITES, title: "Límites municipales",
-    renderer: { type:"simple", symbol:{ type:"simple-fill", color:[0,0,0,0], outline:{color:[100,140,180,200],width:0.8} } },
-    popupEnabled: false
-  });
+  layers.limites = new FeatureLayer({url:URLS.limites,popupEnabled:false,
+    renderer:{type:"simple",symbol:{type:"simple-fill",color:[0,0,0,0],outline:{color:[80,130,180,180],width:0.8}}}});
+  layers.corop   = new FeatureLayer({url:URLS.corop,  visible:false,
+    popupTemplate:{title:"{MpNombre}",content:"<b>Total delitos:</b> {Point_Count}"}});
+  layers.hsvi    = new FeatureLayer({url:URLS.hsvi,   visible:false,renderer:hsR,
+    popupTemplate:{title:"{MpNombre}",content:"<b>Categoría VI:</b> {CATEGORIA}"}});
+  layers.hslp    = new FeatureLayer({url:URLS.hslp,   visible:false,renderer:hsR,
+    popupTemplate:{title:"{MpNombre}",content:"<b>Categoría LP:</b> {CATEGORIA}"}});
+  layers.hshr    = new FeatureLayer({url:URLS.hshr,   visible:false,renderer:hsR,
+    popupTemplate:{title:"{MpNombre}",content:"<b>Categoría Hurto:</b> {CATEGORIA}"}});
+  layers.hshd    = new FeatureLayer({url:URLS.hshd,   visible:false,renderer:hsR,
+    popupTemplate:{title:"{MpNombre}",content:"<b>Categoría HD:</b> {CATEGORIA}"}});
+  layers.delitos = new FeatureLayer({url:URLS.delitos, renderer:ptR,
+    popupTemplate:{title:"{DELITO}",content:[{type:"fields",fieldInfos:[
+      {fieldName:"MUNICIPIO",label:"Municipio"},
+      {fieldName:"FECHA_HECH",label:"Fecha",format:{dateFormat:"short-date"}},
+      {fieldName:"HORA_HECHO",label:"Hora"},
+      {fieldName:"MES_HECHO", label:"Mes"},
+      {fieldName:"AÑO_HECHO", label:"Año"}
+    ]}]}});
 
-  const lCoropleta = new FeatureLayer({ url: FS_COROPLETA, title: "Delitos por municipio", visible: false,
-    popupTemplate: { title: "{MpNombre}", content: "<b>Total delitos:</b> {Point_Count}" }
-  });
+  const map  = new Map({basemap:"dark-gray-vector",
+    layers:[layers.limites,layers.corop,layers.hsvi,layers.hslp,layers.hshr,layers.hshd,layers.delitos]});
+  const view = new MapView({container:"viewDiv",map,center:[-73.2,5.6],zoom:8,ui:{components:["zoom"]}});
 
-  const lHsVI = new FeatureLayer({ url: FS_HS_VI, title: "Hotspot Violencia Intrafamiliar", visible: false, renderer: hsRenderer,
-    popupTemplate: { title: "{MpNombre}", content: "<b>Categoría:</b> {CATEGORIA}" }
-  });
-  const lHsLP = new FeatureLayer({ url: FS_HS_LP, title: "Hotspot Lesiones Personales",     visible: false, renderer: hsRenderer,
-    popupTemplate: { title: "{MpNombre}", content: "<b>Categoría:</b> {CATEGORIA}" }
-  });
-  const lHsHR = new FeatureLayer({ url: FS_HS_HR, title: "Hotspot Hurto",                   visible: false, renderer: hsRenderer,
-    popupTemplate: { title: "{MpNombre}", content: "<b>Categoría:</b> {CATEGORIA}" }
-  });
-  const lHsHD = new FeatureLayer({ url: FS_HS_HD, title: "Hotspot Homicidio Doloso",        visible: false, renderer: hsRenderer,
-    popupTemplate: { title: "{MpNombre}", content: "<b>Categoría:</b> {CATEGORIA}" }
-  });
+  view.ui.add(new Home({view}),"top-left");
+  view.ui.add(new ScaleBar({view,unit:"metric"}),"bottom-right");
+  view.when(()=>loadStats());
 
-  const lDelitos = new FeatureLayer({ url: FS_DELITOS, title: "Delitos 2023-2025",
-    renderer: {
-      type: "unique-value", field: "DELITO",
-      uniqueValueInfos: [
-        { value:"AMENAZAS",              symbol:{ type:"simple-marker", color:[0,112,255],   size:5, outline:{color:[0,0,0],width:0.5} } },
-        { value:"DELITOS SEXUALES",      symbol:{ type:"simple-marker", color:[197,0,255],   size:5, outline:{color:[0,0,0],width:0.5} } },
-        { value:"ESTAFA",                symbol:{ type:"simple-marker", color:[230,152,0],   size:5, outline:{color:[0,0,0],width:0.5} } },
-        { value:"HOMICIDIO CULPOSO",     symbol:{ type:"simple-marker", color:[255,255,0],   size:5, outline:{color:[0,0,0],width:0.5} } },
-        { value:"HOMICIDIO DOLOSO",      symbol:{ type:"simple-marker", color:[230,0,0],     size:5, outline:{color:[0,0,0],width:0.5} } },
-        { value:"HURTO",                 symbol:{ type:"simple-marker", color:[152,230,0],   size:5, outline:{color:[0,0,0],width:0.5} } },
-        { value:"LESIONES PERSONALES",   symbol:{ type:"simple-marker", color:[168,112,0],   size:5, outline:{color:[0,0,0],width:0.5} } },
-        { value:"VIOLENCIA INTRAFAMILIAR",symbol:{ type:"simple-marker", color:[255,115,223],size:5, outline:{color:[0,0,0],width:0.5} } }
-      ],
-      defaultSymbol: { type:"simple-marker", color:[130,130,130], size:4 }
-    },
-    popupTemplate: {
-      title: "{DELITO}",
-      content: [{
-        type: "fields",
-        fieldInfos: [
-          { fieldName:"MUNICIPIO",  label:"Municipio" },
-          { fieldName:"FECHA_HECH", label:"Fecha", format:{ dateFormat:"short-date" } },
-          { fieldName:"HORA_HECHO", label:"Hora" },
-          { fieldName:"MES_HECHO",  label:"Mes" },
-          { fieldName:"AÑO_HECHO",  label:"Año" }
-        ]
-      }]
-    }
-  });
+  window.tgl = (k,v)=>{ layers[k].visible=v; };
 
-  // ── MAPA ─────────────────────────────────────────────
-  const map = new Map({
-    basemap: "dark-gray-vector",
-    layers: [lLimites, lCoropleta, lHsVI, lHsLP, lHsHR, lHsHD, lDelitos]
-  });
-
-  const view = new MapView({
-    container: "viewDiv",
-    map: map,
-    center: [-73.2, 5.6],
-    zoom: 8,
-    ui: { components: ["zoom"] }
-  });
-
-  view.ui.add(new Home({ view }), "top-left");
-  view.ui.add(new ScaleBar({ view, unit: "metric" }), "bottom-right");
-
-  // ── LAYER REGISTRY ───────────────────────────────────
-  window.layerMap = {
-    'delitos': lDelitos, 'coropleta': lCoropleta,
-    'hs-vi': lHsVI, 'hs-lp': lHsLP, 'hs-hr': lHsHR, 'hs-hd': lHsHD
-  };
-
-  window.toggleLayer = function(key, vis) { window.layerMap[key].visible = vis; };
-
-  // ── FILTROS ──────────────────────────────────────────
-  window.applyFilters = function() {
-    const delito = document.getElementById('sel-delito').value;
-    const anio   = document.getElementById('sel-anio').value;
-    const mes    = document.getElementById('sel-mes').value;
-    const parts  = [];
-    if (delito) parts.push(`DELITO = '${delito}'`);
-    if (anio)   parts.push(`AÑO_HECHO = ${anio}`);
-    if (mes)    parts.push(`MES_HECHO = '${mes}'`);
-    currentWhere = parts.length ? parts.join(' AND ') : '1=1';
-    lDelitos.definitionExpression = currentWhere;
+  window.applyF = ()=>{
+    const d=document.getElementById('sel-d').value;
+    const a=document.getElementById('sel-a').value;
+    const m=document.getElementById('sel-m').value;
+    const p=[];
+    if(d) p.push(`DELITO='${d}'`);
+    if(a) p.push(`AÑO_HECHO=${a}`);
+    if(m) p.push(`MES_HECHO='${m}'`);
+    where = p.length ? p.join(' AND ') : '1=1';
+    layers.delitos.definitionExpression = where==='1=1' ? '' : where;
     loadStats();
   };
 
-  window.resetFilters = function() {
-    document.getElementById('sel-delito').value = '';
-    document.getElementById('sel-anio').value   = '';
-    document.getElementById('sel-mes').value    = '';
-    currentWhere = '1=1';
-    lDelitos.definitionExpression = '';
-    loadStats();
+  window.resetF = ()=>{
+    ['sel-d','sel-a','sel-m'].forEach(id=>document.getElementById(id).value='');
+    where='1=1'; layers.delitos.definitionExpression=''; loadStats();
   };
+});
 
-  // ── ESTADÍSTICAS ─────────────────────────────────────
-  async function qStats(url, params) {
-    const p = new URLSearchParams({ ...params, f: 'json' });
-    const r = await fetch(`${url}?${p}`);
-    const d = await r.json();
-    return d.features || [];
-  }
+async function qry(url,params){
+  const r=await fetch(`${url}?${new URLSearchParams({...params,f:'json'})}`);
+  const d=await r.json(); return d;
+}
 
-  async function loadStats() {
-    document.getElementById('spin-stats').style.display = 'flex';
-    document.getElementById('stats-content').style.display = 'none';
-
-    const stat = JSON.stringify([{ statisticType:'count', onStatisticField:'OBJECTID', outStatisticFieldName:'T' }]);
-
-    const [munRes, delRes, mesRes, totRes] = await Promise.all([
-      fetch(`${FS_COROPLETA}/query?where=1=1&outFields=MpNombre,Point_Count&orderByFields=Point_Count DESC&resultRecordCount=15&f=json`).then(r=>r.json()),
-      fetch(`${FS_DELITOS}/query?where=${encodeURIComponent(currentWhere)}&groupByFieldsForStatistics=DELITO&outStatistics=${encodeURIComponent(stat)}&orderByFields=T DESC&f=json`).then(r=>r.json()),
-      fetch(`${FS_DELITOS}/query?where=${encodeURIComponent(currentWhere)}&groupByFieldsForStatistics=MES_HECHO&outStatistics=${encodeURIComponent(stat)}&f=json`).then(r=>r.json()),
-      fetch(`${FS_DELITOS}/query?where=${encodeURIComponent(currentWhere)}&returnCountOnly=true&f=json`).then(r=>r.json())
+async function loadStats(){
+  document.getElementById('spin-s').style.display='flex';
+  document.getElementById('stats-body').style.display='none';
+  const st=JSON.stringify([{statisticType:'count',onStatisticField:'OBJECTID',outStatisticFieldName:'T'}]);
+  try{
+    const [tot,mun,del,mes] = await Promise.all([
+      qry(URLS.delitos+'/query',{where,returnCountOnly:true}),
+      qry(URLS.corop+'/query',{where:'1=1',outFields:'MpNombre,Point_Count',orderByFields:'Point_Count DESC',resultRecordCount:15}),
+      qry(URLS.delitos+'/query',{where,groupByFieldsForStatistics:'DELITO',outStatistics:st,orderByFields:'T DESC'}),
+      qry(URLS.delitos+'/query',{where,groupByFieldsForStatistics:'MES_HECHO',outStatistics:st})
     ]);
 
-    // KPIs
-    const total   = totRes.count || 0;
-    const topMun  = munRes.features?.[0]?.attributes;
-    const topDel  = delRes.features?.[0]?.attributes;
-    document.getElementById('total-badge').textContent = `Total: ${total.toLocaleString()} delitos`;
-    document.getElementById('kpi-grid').innerHTML = `
+    const total = tot.count||0;
+    const topM  = mun.features?.[0]?.attributes;
+    const topD  = del.features?.[0]?.attributes;
+    document.getElementById('total-hdr').textContent=`Total: ${total.toLocaleString()} delitos`;
+
+    document.getElementById('kpis').innerHTML=`
       <div class="kpi"><div class="val">${total.toLocaleString()}</div><div class="lbl">Total delitos</div></div>
-      <div class="kpi"><div class="val" style="font-size:11px;color:#f59e0b">${topMun?.MpNombre||'—'}</div><div class="lbl">Municipio más afectado</div></div>
-      <div class="kpi"><div class="val" style="font-size:10px;color:#f43f5e">${topDel?.DELITO||'—'}</div><div class="lbl">Delito más frecuente</div></div>
-      <div class="kpi"><div class="val" style="color:#22c55e">${munRes.features?.length||0}</div><div class="lbl">Municipios con delitos</div></div>
-    `;
+      <div class="kpi"><div class="val" style="font-size:11px;color:#f59e0b">${topM?.MpNombre||'—'}</div><div class="lbl">Municipio más afectado</div></div>
+      <div class="kpi"><div class="val" style="font-size:10px;color:#f43f5e">${topD?.DELITO||'—'}</div><div class="lbl">Delito más frecuente</div></div>
+      <div class="kpi"><div class="val" style="color:#22c55e">${mun.features?.length||0}</div><div class="lbl">Municipios</div></div>`;
 
-    // Chart municipios
-    const muns = munRes.features?.map(f=>f.attributes) || [];
-    mkBar('chart-mun', muns.map(f=>f.MpNombre), muns.map(f=>f.Point_Count), true);
+    // Charts
+    const muns=mun.features?.map(f=>f.attributes)||[];
+    mkBar('ch-mun',muns.map(f=>f.MpNombre),muns.map(f=>f.Point_Count),true,null);
 
-    // Chart delitos
-    const dels = delRes.features?.map(f=>f.attributes) || [];
-    mkBar('chart-del', dels.map(f=>f.DELITO), dels.map(f=>f.T), false, DEL_COLORS);
+    const dels=del.features?.map(f=>f.attributes)||[];
+    mkBar('ch-del',dels.map(f=>f.DELITO),dels.map(f=>f.T),false,DC);
 
-    // Chart mes
-    const mesMap = {};
-    (mesRes.features||[]).forEach(f => mesMap[f.attributes.MES_HECHO] = f.attributes.T);
-    const mesL = MES_ORDER.filter(m => mesMap[m]);
-    mkLine('chart-mes', mesL, mesL.map(m=>mesMap[m]));
+    const mm={}; (mes.features||[]).forEach(f=>mm[f.attributes.MES_HECHO]=f.attributes.T);
+    const ml=MES.filter(m=>mm[m]);
+    mkLine('ch-mes',ml,ml.map(m=>mm[m]));
 
-    // Hotspot chart
-    await loadHsChart();
+    await loadHs();
 
-    document.getElementById('spin-stats').style.display = 'none';
-    document.getElementById('stats-content').style.display = 'block';
-  }
+    document.getElementById('spin-s').style.display='none';
+    document.getElementById('stats-body').style.display='block';
+  } catch(e){ document.getElementById('spin-s').innerHTML='⚠ Error cargando datos'; }
+}
 
-  async function loadHsChart() {
-    const hsUrls = {
-      'V.Intrafamiliar': FS_HS_VI,
-      'Lesiones':        FS_HS_LP,
-      'Hurto':           FS_HS_HR,
-      'Homicidio':       FS_HS_HD
-    };
-    const stat = JSON.stringify([{ statisticType:'count', onStatisticField:'FID', outStatisticFieldName:'T' }]);
-    const results = await Promise.all(
-      Object.entries(hsUrls).map(async ([name, url]) => {
-        const r = await fetch(`${url}/query?where=1=1&groupByFieldsForStatistics=CATEGORIA&outStatistics=${encodeURIComponent(stat)}&f=json`).then(r=>r.json());
-        const cats = {};
-        (r.features||[]).forEach(f => cats[f.attributes.CATEGORIA] = f.attributes.T);
-        return { name, cats };
-      })
-    );
-    const cats = ['Persistente','Emergente','Esporadico','No significativo'];
-    const datasets = cats.map(cat => ({
-      label: cat === 'Esporadico' ? 'Esporádico' : cat,
-      data: results.map(r => r.cats[cat] || 0),
-      backgroundColor: CAT_COLORS[cat] + 'cc',
-      borderColor: CAT_COLORS[cat],
-      borderWidth: 1, borderRadius: 2
-    }));
-    if (charts['chart-hs']) charts['chart-hs'].destroy();
-    const ctx = document.getElementById('chart-hs').getContext('2d');
-    charts['chart-hs'] = new Chart(ctx, {
-      type: 'bar',
-      data: { labels: results.map(r=>r.name), datasets },
-      options: {
-        responsive: true,
-        plugins: { legend:{ position:'bottom', labels:{ color:'#64748b', font:{size:8}, boxWidth:8 } }, tooltip:{ backgroundColor:'#0f1318', borderColor:'#1e293b', borderWidth:1 } },
-        scales: {
-          x: { grid:{color:'#1e293b'}, ticks:{color:'#64748b',font:{size:8}} },
-          y: { grid:{color:'#1e293b'}, ticks:{color:'#64748b',font:{size:8}} }
-        }
-      }
-    });
-  }
-
-  // ── CHART HELPERS ────────────────────────────────────
-  const cOpts = (horiz) => ({
-    responsive: true,
-    plugins: {
-      legend: { display: false },
-      tooltip: { backgroundColor:'#0f1318', borderColor:'#1e293b', borderWidth:1, titleColor:'#e2e8f0', bodyColor:'#64748b',
-        callbacks: { label: c => ` ${(horiz?c.parsed.x:c.parsed.y).toLocaleString()} delitos` }
-      }
-    },
-    scales: {
-      x: { grid:{color:'#1e293b'}, ticks:{color:'#64748b',font:{size:8}} },
-      y: { grid:{color:'#1e293b'}, ticks:{color:'#94a3b8',font:{size:8}} }
-    }
-  });
-
-  function mkBar(id, labels, values, horiz, colors) {
-    if (charts[id]) charts[id].destroy();
-    const ctx = document.getElementById(id).getContext('2d');
-    const c = colors || labels.map((_,i) => DEL_COLORS[i%DEL_COLORS.length]);
-    charts[id] = new Chart(ctx, {
-      type: 'bar',
-      data: { labels, datasets: [{ data:values, backgroundColor:c.map(x=>x+'99'), borderColor:c, borderWidth:1, borderRadius:2 }] },
-      options: { ...cOpts(horiz), indexAxis: horiz ? 'y' : 'x' }
-    });
-  }
-
-  function mkLine(id, labels, values) {
-    if (charts[id]) charts[id].destroy();
-    const ctx = document.getElementById(id).getContext('2d');
-    charts[id] = new Chart(ctx, {
-      type: 'line',
-      data: { labels, datasets: [{ data:values, borderColor:'#38bdf8', backgroundColor:'#38bdf815', borderWidth:2, pointBackgroundColor:'#38bdf8', pointRadius:3, fill:true, tension:0.3 }] },
-      options: cOpts(false)
-    });
-  }
-
-  // ── CHART TABS ───────────────────────────────────────
-  window.showChart = function(id, btn) {
-    document.querySelectorAll('.ctab').forEach(b => b.classList.remove('active'));
-    ['municipio','delito','mes','hotspot'].forEach(k => {
-      document.getElementById('cwrap-'+k).style.display = k===id ? 'block' : 'none';
-    });
-    btn.classList.add('active');
+async function loadHs(){
+  const hsMap={
+    'V.Intrafam':URLS.hsvi,'Lesiones':URLS.hslp,'Hurto':URLS.hshr,'Homicidio':URLS.hshd
   };
+  const st=JSON.stringify([{statisticType:'count',onStatisticField:'FID',outStatisticFieldName:'T'}]);
+  const res=await Promise.all(Object.entries(hsMap).map(async([name,url])=>{
+    const d=await qry(url+'/query',{where:'1=1',groupByFieldsForStatistics:'CATEGORIA',outStatistics:st});
+    const c={}; (d.features||[]).forEach(f=>c[f.attributes.CATEGORIA]=f.attributes.T);
+    return {name,c};
+  }));
+  const cats=['Persistente','Emergente','Esporadico','No significativo'];
+  const datasets=cats.map(cat=>({
+    label:cat==='Esporadico'?'Esporádico':cat,
+    data:res.map(r=>r.c[cat]||0),
+    backgroundColor:HSC[cat]+'cc',borderColor:HSC[cat],borderWidth:1,borderRadius:2
+  }));
+  if(charts['ch-hs']) charts['ch-hs'].destroy();
+  charts['ch-hs']=new Chart(document.getElementById('ch-hs').getContext('2d'),{
+    type:'bar',
+    data:{labels:res.map(r=>r.name),datasets},
+    options:{responsive:true,plugins:{legend:{position:'bottom',labels:{color:'#64748b',font:{size:8},boxWidth:8}},tooltip:{backgroundColor:'#0f1318',borderColor:'#1e293b',borderWidth:1}},
+    scales:{x:{grid:{color:'#1e293b'},ticks:{color:'#64748b',font:{size:8}}},y:{grid:{color:'#1e293b'},ticks:{color:'#64748b',font:{size:8}}}}}
+  });
+}
 
-  // ── INIT ─────────────────────────────────────────────
-  view.when(() => { loadStats(); });
+const copts=(h)=>({responsive:true,
+  plugins:{legend:{display:false},tooltip:{backgroundColor:'#0f1318',borderColor:'#1e293b',borderWidth:1,titleColor:'#e2e8f0',bodyColor:'#64748b',
+    callbacks:{label:c=>` ${(h?c.parsed.x:c.parsed.y).toLocaleString()} delitos`}}},
+  scales:{x:{grid:{color:'#1e293b'},ticks:{color:'#64748b',font:{size:8}}},y:{grid:{color:'#1e293b'},ticks:{color:'#94a3b8',font:{size:8}}}}
+});
 
-}); // require
+function mkBar(id,labels,vals,h,colors){
+  if(charts[id]) charts[id].destroy();
+  const c=colors||labels.map((_,i)=>DC[i%DC.length]);
+  charts[id]=new Chart(document.getElementById(id).getContext('2d'),{
+    type:'bar',
+    data:{labels,datasets:[{data:vals,backgroundColor:c.map(x=>x+'99'),borderColor:c,borderWidth:1,borderRadius:2}]},
+    options:{...copts(h),indexAxis:h?'y':'x'}
+  });
+}
+
+function mkLine(id,labels,vals){
+  if(charts[id]) charts[id].destroy();
+  charts[id]=new Chart(document.getElementById(id).getContext('2d'),{
+    type:'line',
+    data:{labels,datasets:[{data:vals,borderColor:'#38bdf8',backgroundColor:'#38bdf815',borderWidth:2,pointBackgroundColor:'#38bdf8',pointRadius:3,fill:true,tension:0.3}]},
+    options:copts(false)
+  });
+}
+
+window.sc=(id,btn)=>{
+  document.querySelectorAll('.ctab').forEach(b=>b.classList.remove('active'));
+  ['mun','del','mes','hs'].forEach(k=>document.getElementById('cw-'+k).style.display=k===id?'block':'none');
+  btn.classList.add('active');
+};
 </script>
 </body>
 </html>
